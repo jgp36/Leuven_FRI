@@ -105,6 +105,10 @@ private:
 	RTT::OutputPort<KDL::Jacobian> jacobianPort;
 	//RTT::OutputPort<Eigen::MatrixXd > massMatrixPort;
 
+	//Added to pass mass matrix information to wbc until dynamic model...
+	lwr_fri::MassMatrix m_mass_matrix;
+	OutputPort<lwr_fri::MassMatrix> massMatrixPort;
+
 	lwr_fri::FriJointCommand m_fri_joint_command;
 	motion_control_msgs::JointPositions m_joint_pos_command;
 	motion_control_msgs::JointVelocities m_joint_vel_command;

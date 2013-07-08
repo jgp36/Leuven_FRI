@@ -1,0 +1,11 @@
+build
+*.pc
+lib
+typekit
+.tb_history
+msg_gen
+*~
+*.log
+lwr_fri/include
+lwr_fri/src/lwr_fri
+lwr_fri/src/orocos

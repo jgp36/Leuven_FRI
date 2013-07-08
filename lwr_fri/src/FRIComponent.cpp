@@ -71,6 +71,8 @@ using namespace RTT;
 
 	this->addPort("Jacobian", jacobianPort);
 
+	this->addPort("MassMatrix", massMatrixPort);
+
 
 	this->addProperty("udp_port", prop_local_port);
 	this->addProperty("max_lost_samples", prop_max_lost_samples).doc("Number of times the joint positions get updated using the last desired velocities without receiving new data on port.");
@@ -168,6 +170,12 @@ void FRIComponent::updateHook() {
 		//Kuka uses Tx, Ty, Tz, Rz, Ry, Rx convention, so we need to swap Rz and Rx
 		m_jac.data.row(3).swap(m_jac.data.row(5));
 		jacobianPort.write(m_jac);
+
+		for ( int i = 0; i < LBR_MNJ; i++)
+		    for ( int j = 0; j < LBR_MNJ; j++)
+				m_mass_matrix.mass[i*LBR_MNJ+j] = m_msr_data.data.massMatrix[i*LBR_MNJ+j];
+
+		massMatrixPort.write(m_mass_matrix);
 
 		//Put robot and fri state on the ports(no parsing)
 		port_robot_state.write(m_msr_data.robot);
