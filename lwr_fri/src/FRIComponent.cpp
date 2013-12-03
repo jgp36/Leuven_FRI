@@ -293,6 +293,8 @@ void FRIComponent::updateHook() {
 			if (m_msr_data.robot.control == FRI_CTRL_CART_IMP) {
 				m_cmd_data.cmd.cmdFlags = FRI_CMD_CARTPOS | FRI_CMD_TCPFT;
 				m_cmd_data.cmd.cmdFlags |= FRI_CMD_CARTSTIFF | FRI_CMD_CARTDAMP;
+				m_cmd_data.cmd.cmdFlags |= FRI_CMD_JNTSTIFF | FRI_CMD_JNTDAMP;
+				m_cmd_data.cmd.cmdFlags |= FRI_CMD_JNTPOS;
 				for (unsigned int i = 0; i < FRI_CART_FRM_DIM; i++)
 					m_cmd_data.cmd.cartPos[i] = m_msr_data.data.msrCartPos[i];
 				for(unsigned int i = 0 ; i < FRI_CART_VEC ; i++)
@@ -306,6 +308,8 @@ void FRIComponent::updateHook() {
 					m_cmd_data.cmd.cartStiffness[i+FRI_CART_VEC/2]=10;
 					m_cmd_data.cmd.cartDamping[i+FRI_CART_VEC/2]=0.1;
 				}
+				for (unsigned int i = 0; i < LBR_MNJ; i++)
+					m_cmd_data.cmd.jntPos[i] = m_msr_data.data.cmdJntPos[i];
 			}
 		}
 		//Only send if state is in FRI_STATE_CMD and drives are powerd
@@ -446,6 +450,28 @@ void FRIComponent::updateHook() {
 					m_cmd_data.cmd.cartDamping[5]=m_cartImp.damping.angular.x;
 					m_cmd_data.cmd.cartDamping[4]=m_cartImp.damping.angular.y;
 					m_cmd_data.cmd.cartDamping[3]=m_cartImp.damping.angular.z;
+				}
+				//Read desired positions XXX Added for nullspace parameter
+				if (port_joint_pos_command.read(m_joint_pos_command) == NewData) {
+					if (m_joint_pos_command.positions.size() == LBR_MNJ) {
+						for (unsigned int i = 0; i < LBR_MNJ; i++)
+							m_cmd_data.cmd.jntPos[i]
+									= m_joint_pos_command.positions[i];
+					} else
+						log(Warning) << "Size of "
+								<< port_joint_pos_command.getName()
+								<< " not equal to " << LBR_MNJ << endlog();
+
+				}
+				//Read desired joint impedance XXX Added for nullspace parameter
+				if (port_fri_joint_impedance.read(m_fri_joint_impedance)
+						== NewData) {
+					for (unsigned int i = 0; i < LBR_MNJ; i++) {
+						m_cmd_data.cmd.jntStiffness[i]
+								= m_fri_joint_impedance.stiffness[i];
+						m_cmd_data.cmd.jntDamping[i]
+								= m_fri_joint_impedance.damping[i];
+					}
 				}
 			} else if (m_msr_data.robot.control == FRI_CTRL_OTHER) {
 				this->error();
