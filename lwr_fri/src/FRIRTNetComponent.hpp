@@ -19,23 +19,26 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
-#ifndef _FRI_COMPONENT_HPP_
-#define _FRI_COMPONENT_HPP_
+#ifndef _FRI_RTNET_COMPONENT_HPP_
+#define _FRI_RTNET_COMPONENT_HPP_
 
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>
 #include <rtt/Logger.hpp>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <kdl/jacobian.hpp>
 
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Wrench.h>
+#include <lwr_fri/typekit/Types.hpp>
+#include <sensor_msgs/typekit/Types.hpp>
+#include <geometry_msgs/typekit/Types.hpp>
+#include <motion_control_msgs/typekit/Types.hpp>
 
-
-#include <friComm.h>
+#include <kuka_lwr_fri/friComm.h>
+#include <kuka_lwr_fri/typekit/Types.hpp>
 
 namespace lwr_fri {
 
@@ -55,70 +58,85 @@ public:
 
 private:
 
+	bool isPowerOn() { return m_msr_data.robot.power!=0; }
+
 	tFriMsrData m_msr_data;
 	tFriCmdData m_cmd_data;
 
-        std::vector<double> m_jntPos;
-        std::vector<double> m_jntVel;
-        std::vector<double> m_jntTorques;
+	sensor_msgs::JointState m_joint_states;
+	lwr_fri::FriJointState m_fri_joint_state;
 
-        geometry_msgs::Pose m_cartPos;
-        geometry_msgs::Twist m_cartTwist;
-        geometry_msgs::Wrench m_cartWrench;
+	geometry_msgs::Pose m_cartPos;
+	geometry_msgs::Twist m_cartTwist;
+	geometry_msgs::Wrench m_cartWrench;
 
-	tFriKrlData m_fromKRL;
-	tFriKrlData m_toKRL;
+	lwr_fri::CartesianImpedance m_cartImp;
+
+	OutputPort<tFriKrlData> port_from_krl;
+	InputPort<tFriKrlData> port_to_krl;
 	//Eigen::Matrix<double,7,7> m_massTmp; Not correct so useless
 
 	/**
 	 * events
 	 */
-	OutputPort<std::string> m_events;
+	OutputPort<std::string> port_events;
 
-	/**
+	/**fri_create_socket
 	 * statistics
 	 */
-	OutputPort<tFriRobotState> m_RobotStatePort;
-	OutputPort<tFriIntfState> m_FriStatePort;
+	OutputPort<tFriRobotState> port_robot_state;
+	OutputPort<tFriIntfState> port_fri_state;
 
 	/**
 	 * Current robot data
 	 */
-	OutputPort<std::vector<double> > m_msrJntPosPort;
-        OutputPort<std::vector<double> > m_cmdJntPosPort;
-	OutputPort<std::vector<double> > m_cmdJntPosFriOffsetPort;
-	OutputPort<geometry_msgs::Pose>  m_msrCartPosPort;
-	OutputPort<geometry_msgs::Pose>  m_cmdCartPosPort;
-	OutputPort<geometry_msgs::Pose>  m_cmdCartPosFriOffsetPort;
-	OutputPort<std::vector<double> >   m_msrJntTrqPort;
-	OutputPort<std::vector<double> >   m_estExtJntTrqPort;
-        OutputPort<geometry_msgs::Wrench> m_estExtTcpWrenchPort;
-	//RTT::OutputPort<KDL::Jacobian> jacobianPort;
+	OutputPort<sensor_msgs::JointState> port_joint_state;
+	OutputPort<lwr_fri::FriJointState> port_fri_joint_state;
+
+	OutputPort<geometry_msgs::Pose>  port_cart_pos_msr;
+	OutputPort<KDL::Frame> port_cart_frame_msr;
+	//OutputPort<geometry_msgs::Pose>  m_cmdCartPosPort;
+	//OutputPort<geometry_msgs::Pose>  m_cmdCartPosFriOffsetPort;
+	OutputPort<geometry_msgs::Wrench> port_cart_wrench_msr;
+	RTT::OutputPort<KDL::Jacobian> jacobianPort;
 	//RTT::OutputPort<Eigen::MatrixXd > massMatrixPort;
-	//RTT::OutputPort<std::vector<double> > gravityPort;
 
-	InputPort<std::vector<double> > m_jntPosPort;
-        InputPort<std::vector<double> > m_jntVelPort;
-        InputPort<geometry_msgs::Pose> m_cartPosPort;
-        InputPort<geometry_msgs::Twist> m_cartTwistPort;
-	InputPort<std::vector<double> > m_addJntTrqPort;
-        InputPort<geometry_msgs::Wrench> m_addTcpWrenchPort;
-        //InputPort<JointImpedances> m_jntImpedancePort;
-        //InputPort<CartesianImpedance> m_cartImpedancePort;
+	//Added to pass mass matrix information to wbc until dynamic model...
+	lwr_fri::MassMatrix m_mass_matrix;
+	OutputPort<lwr_fri::MassMatrix> massMatrixPort;
 
-	int m_local_port,m_socket,m_remote_port, m_control_mode;
+	lwr_fri::FriJointCommand m_fri_joint_command;
+	motion_control_msgs::JointPositions m_joint_pos_command;
+	motion_control_msgs::JointVelocities m_joint_vel_command;
+	motion_control_msgs::JointEfforts m_joint_effort_command;
+	lwr_fri::FriJointImpedance m_fri_joint_impedance;
+	InputPort<lwr_fri::FriJointCommand> port_fri_joint_command;
+	InputPort<motion_control_msgs::JointPositions> port_joint_pos_command;
+	InputPort<motion_control_msgs::JointVelocities> port_joint_vel_command;
+	InputPort<motion_control_msgs::JointEfforts> port_joint_effort_command;
 
-	const char* m_remote_address;
-	struct sockaddr m_remote_addr;
+	InputPort<lwr_fri::FriJointImpedance> port_fri_joint_impedance;
+
+	InputPort<geometry_msgs::Pose> port_cart_pos_command;
+	InputPort<geometry_msgs::Twist> port_cart_vel_command;
+	InputPort<geometry_msgs::Wrench> port_cart_wrench_command;
+	InputPort<lwr_fri::CartesianImpedance> port_cart_impedance_command;
+
+	int m_local_port, m_socket, m_remote_port, m_control_mode;
+	std::string joint_names_prefix;
 	uint16_t counter, fri_state_last;
+	struct sockaddr m_remote_addr;
+	socklen_t m_sock_addr_len;
+
+	std::string m_mon_mode, m_cmd_mode, m_unknown_mode;
+	bool m_init;
+	KDL::Jacobian m_jac;
+
+	int m_lost_sample_count, prop_max_lost_samples;
+	float real_time;
 };
 
 }//Namespace LWR
 
 #endif//_FRI_COMPONENT_HPP_
 
-
-    
-
-
-    

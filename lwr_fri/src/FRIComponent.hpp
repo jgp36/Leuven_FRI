@@ -137,6 +137,7 @@ private:
 	KDL::Jacobian m_jac;
 
 	int m_lost_sample_count, prop_max_lost_samples;
+	float real_time;
 };
 
 }//Namespace LWR

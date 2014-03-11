@@ -39,7 +39,7 @@ using namespace RTT;
 
     FRIComponent::FRIComponent(const std::string& name) :
         TaskContext(name, PreOperational),
-        m_socket(0),m_jac(LBR_MNJ), m_lost_sample_count(0), prop_max_lost_samples(5)
+        m_socket(0),m_jac(LBR_MNJ), m_lost_sample_count(0), prop_max_lost_samples(5), real_time(-1)
     {
 
 	this->addPort("fromKRL", port_from_krl);
@@ -76,6 +76,7 @@ using namespace RTT;
 
 	this->addProperty("udp_port", prop_local_port);
 	this->addProperty("max_lost_samples", prop_max_lost_samples).doc("Number of times the joint positions get updated using the last desired velocities without receiving new data on port.");
+	this->addProperty("real_time", real_time);
 	/*
 	 this->addProperty("control_mode", prop_control_mode).doc("1=JntPos, 2=JntVel, 3=JntTrq, 4=CartPos, 5=CartForce, 6=CartTwist");
 	 */
@@ -487,8 +488,9 @@ void FRIComponent::updateHook() {
 			m_init = false;
 		}
 	}//End fri_recv succesfull
-
-	this->trigger();
+	if(real_time < 0.0) {
+          this->trigger();
+        }
 }
 
 void FRIComponent::stopHook() {
